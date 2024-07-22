@@ -1,10 +1,3 @@
-import streamlit as st
-import whisper
-import os
-import time
-from pathlib import Path
-import subprocess
-
 # Function to extract audio from video
 def extract_audio(filepath):
     st.write('Extracting audio from video file...')
@@ -58,7 +51,10 @@ if uploaded_file is not None and submit_button:
     srt_path = video_path.with_suffix('.srt')
     extract_subtitle(mp3_path, model_size, srt_path)
 
-    output_path = video_path.with_suffix('_subtitled.mp4')
+    # Manually create new file name for the output video
+    output_path = video_path.stem + '_subtitled.mp4'
+    output_path = Path(output_path)
+    
     merge_subtitles(str(video_path), str(srt_path), str(output_path))
     
     st.success('Process complete!')
