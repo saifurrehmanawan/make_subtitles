@@ -1,42 +1,66 @@
 import streamlit as st
+import whisper
+import os
+import time
+from pathlib import Path
 import subprocess
 
-def generate_subtitles(video_path, lang):
-    subprocess.run(["python3", "transcript.py", "-i", video_path, "-l", lang, "-o", "output.srt"])
+# Function to extract audio from video
+def extract_audio(filepath):
+    st.write('Extracting audio from video file...')
+    tic = time.time()
+    dirname = os.path.dirname(filepath)
+    file_name = os.path.basename(filepath)
+    file_basename = file_name.split('.')[0]
+    mp3_path = os.path.join(dirname, file_basename+".mp3")
+    subprocess.run(['ffmpeg', '-i', filepath, '-f', 'mp3', '-ab', '192000', '-vn', mp3_path])
+    toc = time.time()
+    st.write(f'Time for extract_audio: {toc-tic}s')
+    return mp3_path
 
-def translate_subtitles(input_srt, src_lang, output_srt, tgt_lang, token):
-    subprocess.run(["python3", "translate.py", "-i", input_srt, "-il", src_lang, "-o", output_srt, "-ol", tgt_lang, "-t", token])
+# Function to extract subtitles
+def extract_subtitle(filepath, model_size, language, srt_path):
+    tic = time.time()
+    st.write('Loading model...')
+    model = whisper.load_model(model_size)
+    
+    st.write('Transcribing in progress...')
+    result = model.transcribe(audio=filepath, language=language, verbose=False)
+    st.write('Done')
+    
+    toc = time.time()
+    st.write(f'Time for extract_subtitle: {toc-tic}s')
 
-def merge_subtitles(video_path, srt_path):
-    subprocess.run(["./merge-srt-to-mp4.sh", video_path, srt_path])
+    from whisper.utils import WriteSRT
+    with open(srt_path, "w", encoding="utf-8") as srt:
+        writer = WriteSRT(os.path.dirname(filepath))
+        writer.write_result(result, srt)
 
-st.title("Auto Subtitle Generator")
+# Function to merge subtitles with video
+def merge_subtitles(video_path, srt_path, output_path):
+    st.write('Merging subtitles with video...')
+    subprocess.run(['ffmpeg', '-i', video_path, '-vf', f'subtitles={srt_path}', output_path])
+    st.write('Subtitles merged successfully.')
 
-uploaded_file = st.file_uploader("Upload a video file", type=["mp4"])
+# Streamlit UI
+st.title("Video Transcription and Subtitle Extraction")
 
-if uploaded_file is not None:
-    video_path = f"./{uploaded_file.name}"
+uploaded_file = st.file_uploader("Choose a video file", type=["mp4"])
+model_size = st.selectbox("Select Whisper model size", ["base", "small", "medium", "large-v1", "large-v2"])
+language = st.text_input("Language (e.g., 'en', 'ja')")
+submit_button = st.button("Process Video")
+
+if uploaded_file is not None and submit_button:
+    video_path = Path(uploaded_file.name)
     with open(video_path, "wb") as f:
         f.write(uploaded_file.read())
 
-    st.video(video_path)
+    mp3_path = extract_audio(video_path)
+    srt_path = video_path.with_suffix('.srt')
+    extract_subtitle(mp3_path, model_size, language, srt_path)
 
-    lang = st.selectbox("Select language for transcription", ["English", "Japanese", "Spanish", "Chinese"])
-    src_lang = lang.lower()
-
-    if st.button("Generate Subtitles"):
-        generate_subtitles(video_path, src_lang)
-        st.success("Subtitles generated!")
-
-    if st.button("Translate Subtitles"):
-        tgt_lang = st.selectbox("Select target language for translation", ["Chinese", "Japanese", "Spanish"])
-        output_srt = "translated.srt"
-        api_token = st.text_input("Enter ChatGPT API Token")
-        if api_token:
-            translate_subtitles("output.srt", src_lang, output_srt, tgt_lang, api_token)
-            st.success("Subtitles translated!")
-
-    if st.button("Merge Subtitles with Video"):
-        merge_subtitles(video_path, "translated.srt")
-        st.video(f"{video_path}_with_subtitles.mp4")
-        st.success("Subtitles merged with video!")
+    output_path = video_path.with_suffix('_subtitled.mp4')
+    merge_subtitles(str(video_path), str(srt_path), str(output_path))
+    
+    st.success('Process complete!')
+    st.video(output_path)
