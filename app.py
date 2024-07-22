@@ -1,3 +1,10 @@
+import streamlit as st
+import whisper
+import os
+import time
+from pathlib import Path
+import subprocess
+
 # Function to extract audio from video
 def extract_audio(filepath):
     st.write('Extracting audio from video file...')
