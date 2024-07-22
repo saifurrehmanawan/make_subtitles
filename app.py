@@ -19,13 +19,13 @@ def extract_audio(filepath):
     return mp3_path
 
 # Function to extract subtitles
-def extract_subtitle(filepath, model_size, language, srt_path):
+def extract_subtitle(filepath, model_size, srt_path):
     tic = time.time()
     st.write('Loading model...')
     model = whisper.load_model(model_size)
     
     st.write('Transcribing in progress...')
-    result = model.transcribe(audio=filepath, language='en', verbose=False)
+    result = model.transcribe(audio=filepath)
     st.write('Done')
     
     toc = time.time()
@@ -47,7 +47,6 @@ st.title("Video Transcription and Subtitle Extraction")
 
 uploaded_file = st.file_uploader("Choose a video file", type=["mp4"])
 model_size = st.selectbox("Select Whisper model size", ["base", "small", "medium", "large-v1", "large-v2"])
-language = st.text_input("Language (e.g., 'en', 'ja')")
 submit_button = st.button("Process Video")
 
 if uploaded_file is not None and submit_button:
