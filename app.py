@@ -56,7 +56,7 @@ if uploaded_file is not None and submit_button:
 
     mp3_path = extract_audio(video_path)
     srt_path = video_path.with_suffix('.srt')
-    extract_subtitle(mp3_path, model_size, language, srt_path)
+    extract_subtitle(mp3_path, model_size, srt_path)
 
     output_path = video_path.with_suffix('_subtitled.mp4')
     merge_subtitles(str(video_path), str(srt_path), str(output_path))
