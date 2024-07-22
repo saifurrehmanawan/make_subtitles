@@ -25,7 +25,7 @@ def extract_subtitle(filepath, model_size, language, srt_path):
     model = whisper.load_model(model_size)
     
     st.write('Transcribing in progress...')
-    result = model.transcribe(audio=filepath, language=language, verbose=False)
+    result = model.transcribe(audio=filepath, language='en', verbose=False)
     st.write('Done')
     
     toc = time.time()
