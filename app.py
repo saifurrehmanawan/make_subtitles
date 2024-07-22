@@ -65,4 +65,4 @@ if uploaded_file is not None and submit_button:
     merge_subtitles(str(video_path), str(srt_path), str(output_path))
     
     st.success('Process complete!')
-    st.video(output_path)
+    st.video(str(output_path))  # Convert Path object to string
